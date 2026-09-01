@@ -11,6 +11,10 @@ from app.schemas.payment_event import (
     SimulateEventRequest,
     WebhookIngestResponse,
 )
+from app.schemas.razorpay_gateway import (
+    PaymentLinkRequest,
+    PaymentLinkResponse,
+)
 
 __all__ = [
     "MerchantCreate",
@@ -22,4 +26,6 @@ __all__ = [
     "PaymentEventResponse",
     "SimulateEventRequest",
     "WebhookIngestResponse",
+    "PaymentLinkRequest",
+    "PaymentLinkResponse",
 ]
