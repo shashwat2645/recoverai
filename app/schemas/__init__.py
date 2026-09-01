@@ -5,6 +5,12 @@ from app.schemas.merchant import (
     Token,
     TokenPayload,
 )
+from app.schemas.payment_event import (
+    PaymentEventCreate,
+    PaymentEventResponse,
+    SimulateEventRequest,
+    WebhookIngestResponse,
+)
 
 __all__ = [
     "MerchantCreate",
@@ -12,4 +18,8 @@ __all__ = [
     "MerchantResponse",
     "Token",
     "TokenPayload",
+    "PaymentEventCreate",
+    "PaymentEventResponse",
+    "SimulateEventRequest",
+    "WebhookIngestResponse",
 ]
