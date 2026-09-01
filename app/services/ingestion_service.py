@@ -3,6 +3,7 @@ from sqlalchemy import select
 
 from app.models.payment_event import PaymentEvent
 from app.schemas.payment_event import PaymentEventCreate
+from app.services.risk_service import RiskService
 
 
 def get_event_by_event_id(db: Session, event_id: str) -> PaymentEvent | None:
@@ -19,7 +20,7 @@ def ingest_payment_event(
     event_in: PaymentEventCreate
 ) -> tuple[PaymentEvent, bool]:
     """
-    Idempotently ingests a payment failure event into the database.
+    Idempotently ingests a payment failure event into the database and triggers risk detection.
     Returns tuple of (PaymentEvent, is_duplicate).
     """
     existing_event = get_event_by_event_id(db, event_in.event_id)
@@ -40,4 +41,8 @@ def ingest_payment_event(
     db.add(db_event)
     db.commit()
     db.refresh(db_event)
+
+    # Automatically trigger revenue risk detection & case initialization
+    RiskService.detect_and_create_recovery_case(db, merchant_id, db_event)
+
     return db_event, False

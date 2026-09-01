@@ -15,6 +15,10 @@ from app.schemas.razorpay_gateway import (
     PaymentLinkRequest,
     PaymentLinkResponse,
 )
+from app.schemas.recovery_case import (
+    RecoveryCaseResponse,
+    RecoveryCaseListResponse,
+)
 
 __all__ = [
     "MerchantCreate",
@@ -28,4 +32,6 @@ __all__ = [
     "WebhookIngestResponse",
     "PaymentLinkRequest",
     "PaymentLinkResponse",
+    "RecoveryCaseResponse",
+    "RecoveryCaseListResponse",
 ]
