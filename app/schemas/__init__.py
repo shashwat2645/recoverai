@@ -19,6 +19,10 @@ from app.schemas.recovery_case import (
     RecoveryCaseResponse,
     RecoveryCaseListResponse,
 )
+from app.schemas.ai_agent import (
+    AIReasoningResult,
+    TestAIReasoningRequest,
+)
 
 __all__ = [
     "MerchantCreate",
@@ -34,4 +38,6 @@ __all__ = [
     "PaymentLinkResponse",
     "RecoveryCaseResponse",
     "RecoveryCaseListResponse",
+    "AIReasoningResult",
+    "TestAIReasoningRequest",
 ]
