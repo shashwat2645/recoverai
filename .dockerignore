@@ -1,0 +1,17 @@
+.venv
+venv
+ENV
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.env
+.env.local
+test_temp.db
+recoverai.db
+.pytest_cache
+.coverage
+htmlcov
+.DS_Store

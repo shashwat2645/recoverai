@@ -7,14 +7,11 @@ client = TestClient(app)
 def test_root_endpoint():
     response = client.get("/")
     assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
-    assert data["docs"] == "/docs"
+    assert "RecoverAI" in response.text
 
 
 def test_health_endpoint():
     response = client.get("/api/v1/health")
-    # Should return status response
     assert response.status_code in [200, 503]
     data = response.json()
     if response.status_code == 200:

@@ -6,6 +6,7 @@ from app.models.payment_event import PaymentEvent
 from app.schemas.ai_agent import AIReasoningResult
 from app.services.gemini_service import GeminiService
 from app.services.rag_service import RAGService
+from app.services.audit_service import AuditService
 
 
 class AgentService:
@@ -19,7 +20,8 @@ class AgentService:
     ) -> tuple[RecoveryCase, AIReasoningResult]:
         """
         Orchestrates the AI Recovery Agent decision workflow for a recovery case.
-        Enforces stopping rules, retrieves merchant RAG policy context, and determines bounded actions.
+        Enforces stopping rules, retrieves merchant RAG policy context, determines bounded actions,
+        and logs immutable audit trails.
         """
         stmt = select(RecoveryCase).where(
             RecoveryCase.id == case_id,
@@ -44,6 +46,21 @@ class AgentService:
                 explanation=f"Stopping rule enforced: case has already reached maximum limit of {case.max_allowed_attempts} attempts.",
                 stopping_rules_triggered=["MAX_RETRIES_EXCEEDED"]
             )
+
+            # Record audit entry for stopping rule enforcement
+            AuditService.create_audit_log(
+                db=db,
+                recovery_case_id=case.id,
+                merchant_id=merchant_id,
+                event_type="STOPPING_RULE_TRIGGERED",
+                prompt_context={"recovery_attempts": case.recovery_attempts, "max_allowed": case.max_allowed_attempts},
+                ai_reasoning=stopping_reasoning.explanation,
+                confidence_score=stopping_reasoning.confidence_score,
+                recommended_action="MARK_UNRECOVERABLE",
+                executed_action="MARK_UNRECOVERABLE",
+                execution_status="SUCCESS"
+            )
+
             return case, stopping_reasoning
 
         # 2. Transition case state to ANALYZING
@@ -75,5 +92,24 @@ class AgentService:
         case.last_action_taken = reasoning_result.recommended_action
         db.commit()
         db.refresh(case)
+
+        # 7. Record Immutable Audit Log Entry
+        AuditService.create_audit_log(
+            db=db,
+            recovery_case_id=case.id,
+            merchant_id=merchant_id,
+            event_type="AI_DIAGNOSIS",
+            prompt_context={
+                "failure_reason": payment_event.failure_reason,
+                "amount": case.amount_at_risk,
+                "customer_email": case.customer_email,
+                "retrieved_policy_context": policy_context
+            },
+            ai_reasoning=reasoning_result.explanation,
+            confidence_score=reasoning_result.confidence_score,
+            recommended_action=reasoning_result.recommended_action,
+            executed_action=None,
+            execution_status="PENDING"
+        )
 
         return case, reasoning_result

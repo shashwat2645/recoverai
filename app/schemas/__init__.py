@@ -35,6 +35,13 @@ from app.schemas.executor import (
     ActionExecutionRequest,
     ActionExecutionResponse,
 )
+from app.schemas.audit import (
+    AuditLogResponse,
+    AuditLogListResponse,
+)
+from app.schemas.dashboard import (
+    DashboardMetricsResponse,
+)
 
 __all__ = [
     "MerchantCreate",
@@ -58,4 +65,7 @@ __all__ = [
     "PolicyListResponse",
     "ActionExecutionRequest",
     "ActionExecutionResponse",
+    "AuditLogResponse",
+    "AuditLogListResponse",
+    "DashboardMetricsResponse",
 ]

@@ -9,8 +9,10 @@ from app.models.recovery_case import RecoveryCase
 from app.schemas.recovery_case import RecoveryCaseResponse, RecoveryCaseListResponse
 from app.schemas.agent import AgentAnalysisResponse
 from app.schemas.executor import ActionExecutionRequest, ActionExecutionResponse
+from app.schemas.audit import AuditLogListResponse
 from app.services.agent_service import AgentService
 from app.services.executor_service import ActionExecutorService
+from app.services.audit_service import AuditService
 
 router = APIRouter(tags=["Recovery Cases"])
 
@@ -125,3 +127,28 @@ def execute_recovery_case_action(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(ve)
         )
+
+
+@router.get("/{case_id}/audit-logs", response_model=AuditLogListResponse, summary="Get Case Chronological Audit Logs")
+def get_case_audit_logs(
+    case_id: str,
+    current_merchant: Merchant = Depends(get_current_merchant),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieves chronological audit trail entries for a specific recovery case.
+    """
+    # Verify case ownership
+    stmt = select(RecoveryCase).where(
+        RecoveryCase.id == case_id,
+        RecoveryCase.merchant_id == current_merchant.id
+    )
+    case = db.execute(stmt).scalar_one_or_none()
+    if not case:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Recovery case with ID {case_id} not found."
+        )
+
+    logs = AuditService.get_audit_logs_for_case(db, case_id, current_merchant.id)
+    return AuditLogListResponse(total=len(logs), audit_logs=logs)

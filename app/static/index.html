@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RecoverAI — Autonomous Revenue Recovery Agent</title>
+    <meta name="description" content="AI Agent that detects revenue at risk, performs root-cause analysis, and executes bounded recovery workflows with explainability and guardrails.">
+    <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dark-theme">
+    <!-- Ambient Glow Background -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="ambient-glow glow-3"></div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <div class="brand-logo">
+                    <span class="logo-icon">⚡</span>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">Recover<span class="brand-accent">AI</span></span>
+                    <span class="brand-badge">Razorpay AI Buildathon</span>
+                </div>
+            </div>
+
+            <div class="nav-status">
+                <div class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span class="status-label">Autonomous Agent Active</span>
+                </div>
+            </div>
+
+            <div class="nav-actions">
+                <button id="btnOpenPolicies" class="btn btn-secondary">
+                    <span>📚 Policies (RAG)</span>
+                </button>
+                <button id="btnSimulateModal" class="btn btn-primary">
+                    <span>+ Simulate Failure</span>
+                </button>
+                <div class="merchant-badge" id="merchantBadge">
+                    <span class="merchant-avatar">M</span>
+                    <span class="merchant-name" id="merchantNameDisplay">Demo Merchant</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+        <!-- Hero Metrics Banner -->
+        <section class="metrics-grid">
+            <div class="metric-card glassmorphism">
+                <div class="metric-header">
+                    <span class="metric-title">Failed Payments Analyzed</span>
+                    <span class="metric-icon">💳</span>
+                </div>
+                <div class="metric-value" id="statTotalFailed">0</div>
+                <div class="metric-footer text-muted">
+                    <span>Real-time webhook events</span>
+                </div>
+            </div>
+
+            <div class="metric-card glassmorphism danger-glow">
+                <div class="metric-header">
+                    <span class="metric-title">Revenue at Risk</span>
+                    <span class="metric-icon">⚠️</span>
+                </div>
+                <div class="metric-value" id="statRevenueAtRisk">₹0.00</div>
+                <div class="metric-footer text-danger">
+                    <span id="statActiveCount">0</span> active cases pending
+                </div>
+            </div>
+
+            <div class="metric-card glassmorphism success-glow">
+                <div class="metric-header">
+                    <span class="metric-title">Recovered Revenue</span>
+                    <span class="metric-icon">🛡️</span>
+                </div>
+                <div class="metric-value" id="statRecoveredRevenue">₹0.00</div>
+                <div class="metric-footer text-success">
+                    <span id="statSuccessRate">0%</span> recovery rate
+                </div>
+            </div>
+
+            <div class="metric-card glassmorphism shield-glow">
+                <div class="metric-header">
+                    <span class="metric-title">Guardrail Blocks</span>
+                    <span class="metric-icon">🚫</span>
+                </div>
+                <div class="metric-value" id="statFalseActions">0</div>
+                <div class="metric-footer text-accent">
+                    <span>100% Unsafe actions avoided</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pipeline Controls & Table Section -->
+        <section class="pipeline-section glassmorphism">
+            <div class="pipeline-header">
+                <div class="pipeline-title-group">
+                    <h2 class="pipeline-title">Live Revenue Recovery Pipeline</h2>
+                    <p class="pipeline-subtitle">Autonomous detection, Gemini root-cause diagnosis, and bounded Razorpay execution.</p>
+                </div>
+                <div class="pipeline-actions">
+                    <div class="filter-tabs" id="filterTabs">
+                        <button class="filter-tab active" data-filter="ALL">All Cases</button>
+                        <button class="filter-tab" data-filter="DETECTED">Detected</button>
+                        <button class="filter-tab" data-filter="ACTION_REQUIRED">Action Required</button>
+                        <button class="filter-tab" data-filter="RECOVERING">Recovering</button>
+                    </div>
+                    <button id="btnAutoRecoverAll" class="btn btn-gradient">
+                        <span>⚡ Autonomous Recover All</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recovery Cases Table -->
+            <div class="table-responsive">
+                <table class="pipeline-table" id="casesTable">
+                    <thead>
+                        <tr>
+                            <th>Case ID</th>
+                            <th>Customer</th>
+                            <th>Amount at Risk</th>
+                            <th>Risk Score</th>
+                            <th>Status</th>
+                            <th>AI Recommendation</th>
+                            <th>Attempts</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="casesTableBody">
+                        <tr>
+                            <td colspan="8" class="table-empty">Loading active recovery cases...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: Simulate Payment Failure -->
+    <div class="modal" id="modalSimulate">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content glassmorphism">
+            <div class="modal-header">
+                <h3 class="modal-title">Simulate Payment Failure Event</h3>
+                <button class="modal-close" id="btnCloseSimulate">&times;</button>
+            </div>
+            <form id="formSimulate" class="modal-form">
+                <div class="form-group">
+                    <label for="simFailureReason">Failure Reason / Error Code</label>
+                    <select id="simFailureReason" class="form-control">
+                        <option value="BAD_REQUEST_PAYMENT_TIMED_OUT">BAD_REQUEST_PAYMENT_TIMED_OUT (Transient High Priority)</option>
+                        <option value="GATEWAY_ERROR">GATEWAY_ERROR (Server/Bank Glitch)</option>
+                        <option value="INSUFFICIENT_FUNDS">INSUFFICIENT_FUNDS (Customer Liquidity)</option>
+                        <option value="EXPIRED_CARD">EXPIRED_CARD (Instrument Invalid)</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label for="simAmount">Amount (₹ INR)</label>
+                        <input type="number" id="simAmount" class="form-control" value="2499.00" min="1" step="0.5">
+                    </div>
+                    <div class="form-group col-6">
+                        <label for="simCurrency">Currency</label>
+                        <input type="text" id="simCurrency" class="form-control" value="INR" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="simCustomerEmail">Customer Email</label>
+                    <input type="email" id="simCustomerEmail" class="form-control" value="rohan.verma@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="simCustomerPhone">Customer Phone</label>
+                    <input type="tel" id="simCustomerPhone" class="form-control" value="+919876543210">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btnCancelSimulate">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Inject Payment Event</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Explainability & Audit Trail Drawer -->
+    <div class="modal" id="modalAudit">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content glassmorphism modal-lg">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title">AI Decision Explainability & Audit Trail</h3>
+                    <p class="modal-subtitle" id="auditCaseSubtitle">Case ID: -</p>
+                </div>
+                <button class="modal-close" id="btnCloseAudit">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="audit-timeline" id="auditTimelineContainer">
+                    <!-- Dynamic chronological audit logs injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Merchant Policies (RAG Knowledge) -->
+    <div class="modal" id="modalPolicies">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content glassmorphism modal-lg">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title">Merchant Knowledge Layer (RAG Policies)</h3>
+                    <p class="modal-subtitle">Vector-indexed business rules dynamically retrieved by Gemini AI Agent.</p>
+                </div>
+                <button class="modal-close" id="btnClosePolicies">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="policy-create-box">
+                    <h4>+ Add Business Rule / Policy</h4>
+                    <form id="formAddPolicy" class="policy-form">
+                        <div class="form-row">
+                            <input type="text" id="policyTitle" class="form-control col-8" placeholder="Policy Title (e.g., VIP Recovery SLA)" required>
+                            <select id="policyType" class="form-control col-4">
+                                <option value="RETRY">RETRY</option>
+                                <option value="REFUND">REFUND</option>
+                                <option value="DISCOUNT">DISCOUNT</option>
+                                <option value="GENERAL">GENERAL</option>
+                            </select>
+                        </div>
+                        <textarea id="policyContent" class="form-control" rows="2" placeholder="Policy details: e.g., For timeouts, send immediate payment link. Max 3 retries within 72 hours." required></textarea>
+                        <button type="submit" class="btn btn-secondary btn-sm">Vector Index Rule</button>
+                    </form>
+                </div>
+                <h4 class="mt-4">Active Indexed Policies</h4>
+                <div class="policy-list" id="policiesListContainer">
+                    <!-- Dynamic policy cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

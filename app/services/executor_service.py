@@ -6,10 +6,10 @@ from app.models.recovery_case import RecoveryCase, RecoveryStatus
 from app.models.payment_event import PaymentEvent
 from app.models.merchant import Merchant
 from app.services.razorpay_service import RazorpayService
+from app.services.audit_service import AuditService
 
 
 class ActionExecutorService:
-    # Strictly Whitelisted Bounded Actions
     ALLOWED_ACTIONS = {
         "GENERATE_PAYMENT_LINK",
         "SEND_REMINDER",
@@ -17,7 +17,6 @@ class ActionExecutorService:
         "MARK_UNRECOVERABLE"
     }
 
-    # Forbidden financial actions (hard block at code level)
     FORBIDDEN_ACTIONS = {
         "REFUND",
         "AUTOMATIC_REFUND",
@@ -34,10 +33,6 @@ class ActionExecutorService:
         merchant_id: str,
         action_override: str | None = None
     ) -> tuple[RecoveryCase, dict]:
-        """
-        Executes a bounded recovery action for a recovery case.
-        Enforces strict whitelist guardrails and blocks forbidden financial operations.
-        """
         stmt = select(RecoveryCase).where(
             RecoveryCase.id == case_id,
             RecoveryCase.merchant_id == merchant_id
@@ -47,17 +42,27 @@ class ActionExecutorService:
         if not case:
             raise ValueError(f"Recovery case with ID {case_id} not found.")
 
-        # Determine target action (override or AI recommended action)
         target_action = (action_override or case.last_action_taken or "GENERATE_PAYMENT_LINK").upper()
 
         # 1. Enforce Hard Guardrail Whitelist & Blacklist
         if target_action in cls.FORBIDDEN_ACTIONS or target_action not in cls.ALLOWED_ACTIONS:
+            AuditService.create_audit_log(
+                db=db,
+                recovery_case_id=case.id,
+                merchant_id=merchant_id,
+                event_type="GUARDRAIL_BLOCKED_ACTION",
+                prompt_context={"attempted_action": target_action},
+                ai_reasoning=f"Guardrail Blocked: Action '{target_action}' violates financial safety policy.",
+                confidence_score=1.00,
+                recommended_action=target_action,
+                executed_action=None,
+                execution_status="BLOCKED_BY_GUARDRAIL"
+            )
             raise PermissionError(
                 f"Guardrail Blocked: Action '{target_action}' is not an allowed bounded action. "
                 f"Financial actions such as refunds or amount alterations are strictly forbidden."
             )
 
-        # Fetch linked PaymentEvent and Merchant details
         event_stmt = select(PaymentEvent).where(PaymentEvent.id == case.payment_event_id)
         payment_event = db.execute(event_stmt).scalar_one()
 
@@ -67,7 +72,6 @@ class ActionExecutorService:
         result_data = {}
         execution_status = "SUCCESS"
 
-        # 2. Execute Bounded Action Handlers
         if target_action == "GENERATE_PAYMENT_LINK":
             link_res = RazorpayService.create_payment_link(
                 amount=case.amount_at_risk,
@@ -120,6 +124,20 @@ class ActionExecutorService:
         case.last_action_taken = target_action
         db.commit()
         db.refresh(case)
+
+        # Record Action Execution Audit Log
+        AuditService.create_audit_log(
+            db=db,
+            recovery_case_id=case.id,
+            merchant_id=merchant_id,
+            event_type="ACTION_EXECUTION",
+            prompt_context=result_data,
+            ai_reasoning=f"Successfully executed bounded action '{target_action}'.",
+            confidence_score=1.00,
+            recommended_action=target_action,
+            executed_action=target_action,
+            execution_status=execution_status
+        )
 
         return case, {
             "execution_status": execution_status,
