@@ -43,8 +43,8 @@ function setupAuthHandlers() {
         tabRegister.classList.remove('active');
         formLogin.style.display = 'block';
         formRegister.style.display = 'none';
-        document.getElementById('authCardTitle').innerText = 'Merchant Console Sign In';
-        document.getElementById('authCardSubtitle').innerText = 'Access your active recovery pipeline and audit trail.';
+        const cardTitle = document.getElementById('authCardTitle');
+        if (cardTitle) cardTitle.innerText = 'Sign In';
     };
 
     tabRegister.onclick = () => {
@@ -52,8 +52,8 @@ function setupAuthHandlers() {
         tabLogin.classList.remove('active');
         formRegister.style.display = 'block';
         formLogin.style.display = 'none';
-        document.getElementById('authCardTitle').innerText = 'Register Merchant Account';
-        document.getElementById('authCardSubtitle').innerText = 'Set up your autonomous recovery agent in seconds.';
+        const cardTitle = document.getElementById('authCardTitle');
+        if (cardTitle) cardTitle.innerText = 'Create Account';
     };
 
     if (linkGoRegister) linkGoRegister.onclick = () => tabRegister.click();

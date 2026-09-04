@@ -19,115 +19,68 @@
 
     <!-- Auth View (Shown if not logged in) -->
     <div id="authContainer" class="auth-wrapper" style="display: none;">
-        <div class="auth-enterprise-container">
-            <!-- Left Info Panel -->
-            <div class="auth-info-panel glassmorphism">
-                <div class="brand-badge-pill">Enterprise Merchant Platform</div>
-                <div class="auth-brand-hero">
-                    <div class="brand-logo-large">
-                        <span class="logo-icon">⚡</span>
-                    </div>
-                    <h1 class="auth-hero-title">Recover<span class="brand-accent">AI</span></h1>
-                    <p class="auth-hero-subtitle">Autonomous Revenue Recovery Agent for Razorpay Merchants</p>
+        <div class="auth-card glassmorphism">
+            <div class="auth-brand">
+                <div class="brand-logo">
+                    <span class="logo-icon">⚡</span>
                 </div>
-                
-                <div class="auth-feature-list">
-                    <div class="auth-feature-item">
-                        <span class="feature-icon">🛡️</span>
-                        <div>
-                            <strong>Real-Time Webhook Ingestion</strong>
-                            <p>Instant capture of Razorpay <code>payment.failed</code> events with HMAC-SHA256 signature verification.</p>
-                        </div>
-                    </div>
-                    <div class="auth-feature-item">
-                        <span class="feature-icon">🧠</span>
-                        <div>
-                            <strong>Gemini 2.5 Root-Cause Analysis</strong>
-                            <p>Autonomous risk diagnosis classifying bank timeouts, gateway glitches, and liquidity issues in &lt;500ms.</p>
-                        </div>
-                    </div>
-                    <div class="auth-feature-item">
-                        <span class="feature-icon">📚</span>
-                        <div>
-                            <strong>Vector RAG Merchant Policies</strong>
-                            <p>Gemini <code>text-embedding-004</code> bounds all AI decisions strictly within your business rules and SLAs.</p>
-                        </div>
-                    </div>
-                    <div class="auth-feature-item">
-                        <span class="feature-icon">🔗</span>
-                        <div>
-                            <strong>Bounded Razorpay Execution</strong>
-                            <p>Automated generation of Razorpay Payment Links with strict code-level refund and discount blocks.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="auth-security-footer">
-                    <span>🔒 Enterprise Grade • Strict Guardrails • Immutable Audit Trail</span>
-                </div>
+                <h1 class="auth-title">Recover<span class="brand-accent">AI</span></h1>
+                <p class="auth-subtitle">Autonomous Revenue Recovery</p>
             </div>
 
-            <!-- Right Form Card -->
-            <div class="auth-card glassmorphism">
-                <div class="auth-card-header">
-                    <h2 class="auth-card-title" id="authCardTitle">Merchant Portal Access</h2>
-                    <p class="auth-card-subtitle" id="authCardSubtitle">Sign in to your active console or register your merchant organization.</p>
-                </div>
-
-                <!-- Auth Tabs: Sign In / Create Account -->
-                <div class="auth-tabs" role="tablist">
-                    <button type="button" id="tabLogin" class="auth-tab active" role="tab">Sign In</button>
-                    <button type="button" id="tabRegister" class="auth-tab" role="tab">Create Merchant Account</button>
-                </div>
-
-                <!-- Login Form -->
-                <form id="formLogin" class="auth-form">
-                    <div class="form-group">
-                        <label for="loginEmail">Business Email</label>
-                        <input type="email" id="loginEmail" class="form-control" placeholder="merchant@yourcompany.com" autocomplete="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block">Sign In to Merchant Console</button>
-                    <div class="auth-switch-prompt">
-                        <span>New merchant?</span>
-                        <a href="javascript:void(0)" id="linkGoRegister" class="auth-link">Create a business account</a>
-                    </div>
-                </form>
-
-                <!-- Register Form -->
-                <form id="formRegister" class="auth-form" style="display: none;">
-                    <div class="form-group">
-                        <label for="regName">Merchant / Business Name</label>
-                        <input type="text" id="regName" class="form-control" placeholder="e.g., Urban Threads India" autocomplete="organization" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="regEmail">Work Email</label>
-                        <input type="email" id="regEmail" class="form-control" placeholder="finance@urbanthreads.in" autocomplete="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="regPassword">Password (Min 8 Characters)</label>
-                        <input type="password" id="regPassword" class="form-control" placeholder="Choose a secure password" minlength="8" autocomplete="new-password" required>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group col-6">
-                            <label for="regKeyId">Razorpay Key ID <small class="text-muted">(Optional)</small></label>
-                            <input type="text" id="regKeyId" class="form-control" placeholder="rzp_live_...">
-                        </div>
-                        <div class="form-group col-6">
-                            <label for="regKeySecret">Key Secret <small class="text-muted">(Optional)</small></label>
-                            <input type="password" id="regKeySecret" class="form-control" placeholder="••••••••">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-gradient btn-block">Register Merchant Account & Launch</button>
-                    <div class="auth-switch-prompt">
-                        <span>Already registered?</span>
-                        <a href="javascript:void(0)" id="linkGoLogin" class="auth-link">Sign in to existing account</a>
-                    </div>
-                </form>
+            <!-- Auth Tabs: Sign In / Create Account -->
+            <div class="auth-tabs" role="tablist">
+                <button type="button" id="tabLogin" class="auth-tab active" role="tab">Sign In</button>
+                <button type="button" id="tabRegister" class="auth-tab" role="tab">Create Account</button>
             </div>
+
+            <!-- Login Form -->
+            <form id="formLogin" class="auth-form">
+                <div class="form-group">
+                    <label for="loginEmail">Business Email</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="merchant@yourcompany.com" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                <div class="auth-switch-prompt">
+                    <span>New merchant?</span>
+                    <a href="javascript:void(0)" id="linkGoRegister" class="auth-link">Create an account</a>
+                </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="formRegister" class="auth-form" style="display: none;">
+                <div class="form-group">
+                    <label for="regName">Merchant / Business Name</label>
+                    <input type="text" id="regName" class="form-control" placeholder="e.g., Urban Threads India" autocomplete="organization" required>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Work Email</label>
+                    <input type="email" id="regEmail" class="form-control" placeholder="finance@urbanthreads.in" autocomplete="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password (Min 8 Characters)</label>
+                    <input type="password" id="regPassword" class="form-control" placeholder="Choose a secure password" minlength="8" autocomplete="new-password" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-6">
+                        <label for="regKeyId">Razorpay Key ID <small class="text-muted">(Optional)</small></label>
+                        <input type="text" id="regKeyId" class="form-control" placeholder="rzp_live_...">
+                    </div>
+                    <div class="form-group col-6">
+                        <label for="regKeySecret">Key Secret <small class="text-muted">(Optional)</small></label>
+                        <input type="password" id="regKeySecret" class="form-control" placeholder="••••••••">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-gradient btn-block">Create Account</button>
+                <div class="auth-switch-prompt">
+                    <span>Already registered?</span>
+                    <a href="javascript:void(0)" id="linkGoLogin" class="auth-link">Sign in here</a>
+                </div>
+            </form>
         </div>
     </div>
 
