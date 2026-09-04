@@ -10,6 +10,16 @@ def test_root_endpoint():
     assert "RecoverAI" in response.text
 
 
+def test_auth_routes():
+    res_reg = client.get("/register")
+    assert res_reg.status_code == 200
+    assert "RecoverAI" in res_reg.text
+
+    res_login = client.get("/login")
+    assert res_login.status_code == 200
+    assert "RecoverAI" in res_login.text
+
+
 def test_health_endpoint():
     response = client.get("/api/v1/health")
     assert response.status_code in [200, 503]

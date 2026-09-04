@@ -1,55 +1,175 @@
-// RecoverAI Interactive Dashboard Engine
+// RecoverAI Production Frontend Application Controller
 
 const API_BASE = '/api/v1';
-let authToken = localStorage.getItem('recoverai_token') || null;
+let authToken = localStorage.getItem('recoverai_auth_token') || null;
+let currentMerchant = null;
 let currentFilter = 'ALL';
 let allCases = [];
 
-// Initialize Dashboard
+// App Lifecycle Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    await ensureAuthenticated();
-    setupEventListeners();
-    await refreshDashboard();
+    setupAuthHandlers();
+    setupDashboardHandlers();
 
-    // Auto refresh metrics every 10 seconds
-    setInterval(refreshMetrics, 10000);
+    if (authToken) {
+        await initAuthenticatedSession();
+    } else {
+        showAuthScreen();
+    }
 });
 
-// Authentication Helper
-async function ensureAuthenticated() {
-    if (!authToken) {
+// View State Management
+function showAuthScreen() {
+    document.getElementById('authContainer').style.display = 'flex';
+    document.getElementById('appContainer').style.display = 'none';
+}
+
+function showDashboardScreen() {
+    document.getElementById('authContainer').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+}
+
+// Authentication Setup
+function setupAuthHandlers() {
+    const tabLogin = document.getElementById('tabLogin');
+    const tabRegister = document.getElementById('tabRegister');
+    const formLogin = document.getElementById('formLogin');
+    const formRegister = document.getElementById('formRegister');
+    const linkGoRegister = document.getElementById('linkGoRegister');
+    const linkGoLogin = document.getElementById('linkGoLogin');
+
+    tabLogin.onclick = () => {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+        formLogin.style.display = 'block';
+        formRegister.style.display = 'none';
+        document.getElementById('authCardTitle').innerText = 'Merchant Console Sign In';
+        document.getElementById('authCardSubtitle').innerText = 'Access your active recovery pipeline and audit trail.';
+    };
+
+    tabRegister.onclick = () => {
+        tabRegister.classList.add('active');
+        tabLogin.classList.remove('active');
+        formRegister.style.display = 'block';
+        formLogin.style.display = 'none';
+        document.getElementById('authCardTitle').innerText = 'Register Merchant Account';
+        document.getElementById('authCardSubtitle').innerText = 'Set up your autonomous recovery agent in seconds.';
+    };
+
+    if (linkGoRegister) linkGoRegister.onclick = () => tabRegister.click();
+    if (linkGoLogin) linkGoLogin.onclick = () => tabLogin.click();
+
+    // Check URL query, hash, or path for direct /register navigation
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    if (path.includes('register') || hash.includes('register')) {
+        tabRegister.click();
+        setTimeout(() => document.getElementById('regName')?.focus(), 150);
+    } else if (path.includes('login') || hash.includes('login')) {
+        tabLogin.click();
+        setTimeout(() => document.getElementById('loginEmail')?.focus(), 150);
+    }
+
+    // Handle Login
+    formLogin.onsubmit = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+
         try {
-            // Auto register/login demo merchant for seamless hackathon walkthrough
+            const res = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                authToken = data.access_token;
+                localStorage.setItem('recoverai_auth_token', authToken);
+                showToast('Welcome back! Signed in successfully.', 'success');
+                await initAuthenticatedSession();
+            } else {
+                const err = await res.json();
+                showToast(err.detail || 'Invalid email or password.', 'error');
+            }
+        } catch (err) {
+            showToast('Unable to reach server. Check connection.', 'error');
+        }
+    };
+
+    // Handle Registration
+    formRegister.onsubmit = async (e) => {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('regName').value.trim(),
+            email: document.getElementById('regEmail').value.trim(),
+            password: document.getElementById('regPassword').value,
+            razorpay_key_id: document.getElementById('regKeyId').value.trim() || null,
+            razorpay_key_secret: document.getElementById('regKeySecret').value.trim() || null
+        };
+
+        try {
             const regRes = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: 'Demo Merchant Store',
-                    email: 'merchant@recoverai.demo',
-                    password: 'DemoPassword123!',
-                    razorpay_key_id: 'rzp_test_buildathon',
-                    razorpay_key_secret: 'demo_secret'
-                })
+                body: JSON.stringify(payload)
             });
 
-            const loginRes = await fetch(`${API_BASE}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: 'merchant@recoverai.demo',
-                    password: 'DemoPassword123!'
-                })
-            });
+            if (regRes.ok) {
+                showToast('Account registered successfully! Signing in...', 'success');
+                // Automatically log in
+                const loginRes = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: payload.email, password: payload.password })
+                });
 
-            if (loginRes.ok) {
-                const data = await loginRes.json();
-                authToken = data.access_token;
-                localStorage.setItem('recoverai_token', authToken);
+                if (loginRes.ok) {
+                    const data = await loginRes.json();
+                    authToken = data.access_token;
+                    localStorage.setItem('recoverai_auth_token', authToken);
+                    await initAuthenticatedSession();
+                }
+            } else {
+                const err = await regRes.json();
+                showToast(err.detail || 'Registration failed.', 'error');
             }
         } catch (err) {
-            console.error('Auth initialization error:', err);
+            showToast('Unable to register account. Check server connection.', 'error');
         }
+    };
+}
+
+// Session Initialization
+async function initAuthenticatedSession() {
+    try {
+        const res = await fetch(`${API_BASE}/auth/me`, { headers: getAuthHeaders() });
+        if (res.ok) {
+            currentMerchant = await res.json();
+            document.getElementById('merchantNameDisplay').innerText = currentMerchant.name;
+            document.getElementById('merchantAvatar').innerText = currentMerchant.name.charAt(0).toUpperCase();
+
+            // Set live webhook URL in configuration modal
+            const webhookUrl = `${window.location.origin}${API_BASE}/webhooks/razorpay`;
+            document.getElementById('webhookUrlDisplay').value = webhookUrl;
+
+            showDashboardScreen();
+            await refreshDashboard();
+        } else {
+            // Token expired or invalid
+            logoutMerchant();
+        }
+    } catch (err) {
+        logoutMerchant();
     }
+}
+
+function logoutMerchant() {
+    authToken = null;
+    currentMerchant = null;
+    localStorage.removeItem('recoverai_auth_token');
+    showAuthScreen();
 }
 
 function getAuthHeaders() {
@@ -59,25 +179,56 @@ function getAuthHeaders() {
     };
 }
 
-// Event Listeners
-function setupEventListeners() {
+// Dashboard Event Handlers
+function setupDashboardHandlers() {
+    // Logout
+    document.getElementById('btnLogout').onclick = () => {
+        logoutMerchant();
+        showToast('You have been signed out.', 'info');
+    };
+
+    // Switch / Register New Merchant
+    const btnSwitchMerchant = document.getElementById('btnSwitchMerchant');
+    if (btnSwitchMerchant) {
+        btnSwitchMerchant.onclick = () => {
+            logoutMerchant();
+            const tabRegister = document.getElementById('tabRegister');
+            if (tabRegister) tabRegister.click();
+            showToast('Ready to register or switch merchant workspace.', 'info');
+            setTimeout(() => document.getElementById('regName')?.focus(), 150);
+        };
+    }
+
     // Modals
     const modalSimulate = document.getElementById('modalSimulate');
     const modalAudit = document.getElementById('modalAudit');
     const modalPolicies = document.getElementById('modalPolicies');
+    const modalWebhookConfig = document.getElementById('modalWebhookConfig');
 
     document.getElementById('btnSimulateModal').onclick = () => modalSimulate.classList.add('open');
     document.getElementById('btnCloseSimulate').onclick = () => modalSimulate.classList.remove('open');
     document.getElementById('btnCancelSimulate').onclick = () => modalSimulate.classList.remove('open');
 
     document.getElementById('btnCloseAudit').onclick = () => modalAudit.classList.remove('open');
+
     document.getElementById('btnOpenPolicies').onclick = () => {
         loadPolicies();
         modalPolicies.classList.add('open');
     };
     document.getElementById('btnClosePolicies').onclick = () => modalPolicies.classList.remove('open');
 
-    // Simulate Form Submission
+    document.getElementById('btnOpenWebhookConfig').onclick = () => modalWebhookConfig.classList.add('open');
+    document.getElementById('btnCloseWebhookConfig').onclick = () => modalWebhookConfig.classList.remove('open');
+
+    // Copy Webhook URL
+    document.getElementById('btnCopyWebhook').onclick = () => {
+        const input = document.getElementById('webhookUrlDisplay');
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        showToast('Webhook URL copied to clipboard!', 'success');
+    };
+
+    // Simulate Event Submission
     document.getElementById('formSimulate').onsubmit = async (e) => {
         e.preventDefault();
         const payload = {
@@ -97,11 +248,11 @@ function setupEventListeners() {
             });
 
             if (res.ok) {
-                showToast('⚡ Payment failure ingested! Risk detected automatically.', 'success');
+                showToast('⚡ Failure event processed! Risk categorized and recovery case created.', 'success');
                 modalSimulate.classList.remove('open');
                 await refreshDashboard();
             } else {
-                showToast('Failed to simulate event', 'error');
+                showToast('Failed to ingest event', 'error');
             }
         } catch (err) {
             showToast('Error connecting to backend', 'error');
@@ -122,11 +273,11 @@ function setupEventListeners() {
     document.getElementById('btnAutoRecoverAll').onclick = async () => {
         const actionableCases = allCases.filter(c => c.status === 'DETECTED' || c.status === 'ACTION_REQUIRED');
         if (actionableCases.length === 0) {
-            showToast('No pending cases require autonomous recovery.', 'info');
+            showToast('No pending cases currently require recovery.', 'info');
             return;
         }
 
-        showToast(`Triggering autonomous recovery on ${actionableCases.length} cases...`, 'info');
+        showToast(`Running autonomous recovery across ${actionableCases.length} cases...`, 'info');
 
         for (const c of actionableCases) {
             if (c.status === 'DETECTED') {
@@ -135,9 +286,41 @@ function setupEventListeners() {
             await fetch(`${API_BASE}/cases/${c.id}/execute`, { method: 'POST', headers: getAuthHeaders() });
         }
 
-        showToast('Autonomous recovery completed successfully!', 'success');
+        showToast('Autonomous recovery pipeline completed!', 'success');
         await refreshDashboard();
     };
+
+    // Quick Policy Templates
+    const btnTplHighValue = document.getElementById('btnTplHighValue');
+    const btnTplTimeout = document.getElementById('btnTplTimeout');
+    const btnTplGuardrail = document.getElementById('btnTplGuardrail');
+
+    if (btnTplHighValue) {
+        btnTplHighValue.onclick = () => {
+            document.getElementById('policyTitle').value = 'VIP High-Value Order Recovery SLA';
+            document.getElementById('policyType').value = 'RETRY';
+            document.getElementById('policyContent').value = 'For failed orders above ₹5,000 caused by bank timeouts or network latency, do not wait; generate a secure Razorpay Payment Link with 24-hour validity and send an immediate recovery notification to the customer. Limit retries to 3 attempts.';
+            showToast('High-Value SLA template loaded into form.', 'info');
+        };
+    }
+
+    if (btnTplTimeout) {
+        btnTplTimeout.onclick = () => {
+            document.getElementById('policyTitle').value = 'Bank Network Timeout Protocol';
+            document.getElementById('policyType').value = 'RETRY';
+            document.getElementById('policyContent').value = 'When a transaction fails with BAD_REQUEST_PAYMENT_TIMED_OUT or GATEWAY_ERROR, automatically generate a Razorpay Payment Link and dispatch to the customer verified email. Do not cancel the order.';
+            showToast('Bank Timeout Protocol template loaded.', 'info');
+        };
+    }
+
+    if (btnTplGuardrail) {
+        btnTplGuardrail.onclick = () => {
+            document.getElementById('policyTitle').value = 'Strict Zero-Refund & Value-Lock Guardrail';
+            document.getElementById('policyType').value = 'REFUND';
+            document.getElementById('policyContent').value = 'Under no circumstances should the recovery agent initiate a refund or alter the transaction value. All unrecoverable cases must be escalated to operations review.';
+            showToast('Zero-Refund Guardrail template loaded.', 'info');
+        };
+    }
 
     // Add Policy Form
     document.getElementById('formAddPolicy').onsubmit = async (e) => {
@@ -155,7 +338,7 @@ function setupEventListeners() {
         });
 
         if (res.ok) {
-            showToast('Policy indexed into vector store!', 'success');
+            showToast('Policy rule vector-indexed for Gemini RAG retrieval!', 'success');
             document.getElementById('policyTitle').value = '';
             document.getElementById('policyContent').value = '';
             loadPolicies();
@@ -210,7 +393,7 @@ function renderCasesTable() {
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="table-empty">No recovery cases found for filter "${currentFilter}". Click "+ Simulate Failure" to inject events.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="table-empty">No recovery cases found for "${currentFilter}". Use "+ Ingest Event" or send Razorpay webhooks.</td></tr>`;
         return;
     }
 
@@ -256,7 +439,7 @@ function renderCasesTable() {
 
 // Case Action Handlers
 async function analyzeCase(caseId) {
-    showToast('Running Gemini AI Root Cause Analysis...', 'info');
+    showToast('Running Gemini AI Root Cause Analysis with RAG Policies...', 'info');
     try {
         const res = await fetch(`${API_BASE}/cases/${caseId}/analyze`, {
             method: 'POST',
@@ -265,7 +448,7 @@ async function analyzeCase(caseId) {
 
         if (res.ok) {
             const data = await res.json();
-            showToast(`AI Recommended: ${data.reasoning.recommended_action} (${(data.reasoning.confidence_score * 100).toFixed(0)}% confidence)`, 'success');
+            showToast(`AI Diagnosis: ${data.reasoning.recommended_action} (${(data.reasoning.confidence_score * 100).toFixed(0)}% confidence)`, 'success');
             await refreshDashboard();
         } else {
             showToast('AI Analysis failed', 'error');
@@ -315,7 +498,7 @@ async function openAuditModal(caseId) {
             const logs = data.audit_logs || [];
 
             if (logs.length === 0) {
-                container.innerHTML = '<div style="color:var(--text-muted); padding:20px 0;">No audit records logged yet for this case. Run "Analyze" to generate AI telemetry.</div>';
+                container.innerHTML = '<div style="color:var(--text-muted); padding:20px 0;">No audit records logged yet. Run "Analyze" to generate AI telemetry.</div>';
                 return;
             }
 
@@ -357,7 +540,7 @@ async function openAuditModal(caseId) {
 // Load Policies Modal
 async function loadPolicies() {
     const container = document.getElementById('policiesListContainer');
-    container.innerHTML = '<div style="color:var(--text-muted);">Loading active policies...</div>';
+    container.innerHTML = '<div style="color:var(--text-muted);">Loading active merchant policies...</div>';
 
     try {
         const res = await fetch(`${API_BASE}/policies`, { headers: getAuthHeaders() });
@@ -366,7 +549,7 @@ async function loadPolicies() {
             const policies = data.policies || [];
 
             if (policies.length === 0) {
-                container.innerHTML = '<div style="color:var(--text-muted);">No custom policies configured. Standard retry policy is active.</div>';
+                container.innerHTML = '<div style="color:var(--text-muted);">No custom policies configured. Standard merchant retry policy is active.</div>';
                 return;
             }
 

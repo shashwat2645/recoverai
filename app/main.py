@@ -64,6 +64,11 @@ def create_application() -> FastAPI:
     def get_dashboard_alias():
         return get_dashboard()
 
+    @app.get("/login", summary="Merchant Login Portal", tags=["UI"])
+    @app.get("/register", summary="Merchant Registration Portal", tags=["UI"])
+    def get_auth_portal():
+        return get_dashboard()
+
     return app
 
 

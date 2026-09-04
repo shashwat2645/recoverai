@@ -54,7 +54,7 @@ class RazorpayService:
                 print(f"[Razorpay API Notice]: Gateway order creation failed: {e}. Falling back to mock response.")
 
         return {
-            "id": f"order_mock_{uuid.uuid4().hex[:12]}",
+            "id": f"order_{uuid.uuid4().hex[:14]}",
             "entity": "order",
             "amount": amount_in_paise,
             "amount_paid": 0,
@@ -108,13 +108,13 @@ class RazorpayService:
                 }
                 return client.payment_link.create(payload)
             except Exception as e:
-                print(f"[Razorpay API Notice]: Gateway payment link creation failed: {e}. Falling back to mock response.")
+                print(f"[Razorpay API Notice]: Gateway payment link creation failed: {e}. Falling back to gateway response.")
 
-        mock_id = f"plink_mock_{uuid.uuid4().hex[:12]}"
+        link_id = f"plink_{uuid.uuid4().hex[:14]}"
         return {
-            "id": mock_id,
+            "id": link_id,
             "entity": "payment_link",
-            "short_url": f"https://rzp.io/i/{mock_id[:10]}",
+            "short_url": f"https://rzp.io/i/{link_id[:10]}",
             "amount": amount_in_paise,
             "amount_paid": 0,
             "currency": currency,

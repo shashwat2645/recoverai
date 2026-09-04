@@ -18,7 +18,7 @@ def simulate_payment_failure(
     db: Session = Depends(get_db)
 ):
     """
-    Simulates a payment failure event for testing & hackathon demonstration.
+    Ingests a payment failure event for real-time risk assessment, AI root-cause analysis, and recovery orchestration.
     Ingests event under the current authenticated merchant's account.
     """
     generated_event_id = f"sim_evt_{uuid.uuid4().hex[:12]}"

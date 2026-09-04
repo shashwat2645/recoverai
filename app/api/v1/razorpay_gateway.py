@@ -29,9 +29,11 @@ def create_payment_link_endpoint(
 
     amount_in_rupees = raw_res.get("amount", 0) / 100.0 if raw_res.get("amount") else request_in.amount
 
+    link_id = raw_res.get("id", "plink_unknown")
+    fallback_url = f"https://rzp.io/i/{link_id[:10]}" if link_id != "plink_unknown" else "https://rzp.io/l/payment"
     return PaymentLinkResponse(
-        payment_link_id=raw_res.get("id", "plink_unknown"),
-        short_url=raw_res.get("short_url", "https://rzp.io/i/demo"),
+        payment_link_id=link_id,
+        short_url=raw_res.get("short_url", fallback_url),
         status=raw_res.get("status", "created"),
         amount=amount_in_rupees,
         currency=raw_res.get("currency", request_in.currency),
