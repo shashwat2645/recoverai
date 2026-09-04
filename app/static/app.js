@@ -59,15 +59,17 @@ function setupAuthHandlers() {
     if (linkGoRegister) linkGoRegister.onclick = () => tabRegister.click();
     if (linkGoLogin) linkGoLogin.onclick = () => tabLogin.click();
 
-    // Check URL query, hash, or path for direct /register navigation
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    if (path.includes('register') || hash.includes('register')) {
-        tabRegister.click();
-        setTimeout(() => document.getElementById('regName')?.focus(), 150);
-    } else if (path.includes('login') || hash.includes('login')) {
-        tabLogin.click();
-        setTimeout(() => document.getElementById('loginEmail')?.focus(), 150);
+    // Only auto-switch to register/login tab if user is not already authenticated
+    if (!authToken) {
+        const path = window.location.pathname.toLowerCase();
+        const hash = window.location.hash.toLowerCase();
+        if (path.includes('register') || hash.includes('register')) {
+            tabRegister.click();
+            setTimeout(() => document.getElementById('regName')?.focus(), 150);
+        } else if (path.includes('login') || hash.includes('login')) {
+            tabLogin.click();
+            setTimeout(() => document.getElementById('loginEmail')?.focus(), 150);
+        }
     }
 
     // Handle Login
@@ -105,8 +107,8 @@ function setupAuthHandlers() {
             name: document.getElementById('regName').value.trim(),
             email: document.getElementById('regEmail').value.trim(),
             password: document.getElementById('regPassword').value,
-            razorpay_key_id: document.getElementById('regKeyId').value.trim() || null,
-            razorpay_key_secret: document.getElementById('regKeySecret').value.trim() || null
+            razorpay_key_id: document.getElementById('regKeyId')?.value.trim() || null,
+            razorpay_key_secret: document.getElementById('regKeySecret')?.value.trim() || null
         };
 
         try {
@@ -133,7 +135,16 @@ function setupAuthHandlers() {
                 }
             } else {
                 const err = await regRes.json();
-                showToast(err.detail || 'Registration failed.', 'error');
+                const errMsg = err.detail || 'Registration failed.';
+                // If email already exists, gently switch to login tab and prefill
+                if (errMsg.toLowerCase().includes('already registered')) {
+                    showToast('Account already exists! Switched to Sign In.', 'info');
+                    tabLogin.click();
+                    document.getElementById('loginEmail').value = payload.email;
+                    document.getElementById('loginPassword').focus();
+                } else {
+                    showToast(errMsg, 'error');
+                }
             }
         } catch (err) {
             showToast('Unable to register account. Check server connection.', 'error');
@@ -149,6 +160,11 @@ async function initAuthenticatedSession() {
             currentMerchant = await res.json();
             document.getElementById('merchantNameDisplay').innerText = currentMerchant.name;
             document.getElementById('merchantAvatar').innerText = currentMerchant.name.charAt(0).toUpperCase();
+
+            // Normalize URL to / if user was at /register or /login
+            if (window.location.pathname === '/register' || window.location.pathname === '/login') {
+                window.history.replaceState({}, '', '/');
+            }
 
             // Set live webhook URL in configuration modal
             const webhookUrl = `${window.location.origin}${API_BASE}/webhooks/razorpay`;
@@ -219,6 +235,18 @@ function setupDashboardHandlers() {
 
     document.getElementById('btnOpenWebhookConfig').onclick = () => modalWebhookConfig.classList.add('open');
     document.getElementById('btnCloseWebhookConfig').onclick = () => modalWebhookConfig.classList.remove('open');
+
+    // Close Modals on Backdrop Click & Escape Key
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+        backdrop.onclick = () => {
+            document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
+        };
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal.open').forEach(m => m.classList.remove('open'));
+        }
+    });
 
     // Copy Webhook URL
     document.getElementById('btnCopyWebhook').onclick = () => {
@@ -393,7 +421,20 @@ function renderCasesTable() {
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="table-empty">No recovery cases found for "${currentFilter}". Use "+ Ingest Event" or send Razorpay webhooks.</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="table-empty" style="padding: 44px 16px !important;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">🛡️</div>
+                    <div style="font-weight: 600; font-size: 14.5px; color: var(--text-primary); margin-bottom: 4px;">No recovery cases in pipeline</div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); max-width: 360px; margin: 0 auto 14px auto;">
+                        ${currentFilter !== 'ALL' ? `No cases currently match filter "${currentFilter}".` : 'Razorpay failure events will appear here in real time.'}
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('modalSimulate').classList.add('open')">
+                        <span>+ Ingest Event Now</span>
+                    </button>
+                </td>
+            </tr>
+        `;
         return;
     }
 
