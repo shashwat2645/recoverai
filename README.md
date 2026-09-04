@@ -162,15 +162,3 @@ python scripts/benchmark_runner.py
 ### Evaluation & Analytics
 - `GET /api/v1/dashboard/metrics` — Aggregate recovery metrics and conversion statistics
 - `GET /api/v1/audit-logs` — Global merchant audit log explorer
-
----
-
-## Automated Test Suite
-
-Run the full Pytest test suite across all 12 modules:
-```bash
-pytest tests/
-```
-```text
-======================== 19 passed in 3.87s ========================
-```
